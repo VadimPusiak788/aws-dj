@@ -7,7 +7,7 @@ env:
   EB_APPLICATION_NAME:  "dj-aws"
   EB_ENVIRONMENT_NAME:  "Djaws-env"
   DEPLOY_PACKAGE_NAME:  "django-app-${{ github.sha }}.zip"
-  AWS_REGION_NAME:      "us-central-1"
+  AWS_REGION_NAME:      "eu-central-1"
 
 on:
   push:
