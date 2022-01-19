@@ -1,0 +1,34 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI/CD
+
+env:
+  EB_S3_BUCKET_NAME:    "test-django-bucket-d"
+  EB_APPLICATION_NAME:  "dj-aws"
+  EB_ENVIRONMENT_NAME:  "Djaws-env"
+  DEPLOY_PACKAGE_NAME:  "django-app-${{ github.sha }}.zip"
+  AWS_REGION_NAME:      "us-west-2"
+
+on:
+  push:
+    branches: master
+
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - name: Git clone on our repo
+        uses: actions/checkout@v2
+
+      - name: Create zip deployment package
+        run: zip -r ${{ env.DEPLOY_PACKAGE_NAME }} ./ -x *.git*
+
+      # Runs a set of commands using the runners shell
+      - name: Run a multi-line script
+        run: |
+          echo Add other actions to build,
+          echo test, and deploy your project.
