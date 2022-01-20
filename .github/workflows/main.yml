@@ -1,0 +1,67 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI/CD
+
+env:
+  EB_S3_BUCKET_NAME:    "test-django-bucket-d"
+  EB_APPLICATION_NAME:  "dj-aws"
+  EB_ENVIRONMENT_NAME:  "Djaws-env"
+  DEPLOY_PACKAGE_NAME:  "django-app-${{ github.sha }}.zip"
+  AWS_REGION_NAME:      "eu-central-1"
+
+on:
+  push:
+    branches: master
+
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - name: Git clone on our repo
+        uses: actions/checkout@v2
+
+      - name: Create zip deployment package
+        run: zip -r ${{ env.DEPLOY_PACKAGE_NAME }} ./ -x *.git*
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with: 
+          aws-access-key-id: ${{ secrets.aws_access_key_id }}
+          aws-secret-access-key: ${{ secrets.aws_secret_access_key  }}
+          aws-region: ${{ env.AWS_REGION_NAME }}
+          
+      - name: Copying file to S3
+        run: aws s3 cp ${{ env.DEPLOY_PACKAGE_NAME }} s3://${{ env.EB_S3_BUCKET_NAME }}/
+        
+      - name: Print nice message on success finish
+        run: echo "CI part finished successfuly"
+    
+  deploy:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    needs: build
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with: 
+          aws-access-key-id: ${{ secrets.aws_access_key_id }}
+          aws-secret-access-key: ${{ secrets.aws_secret_access_key }}
+          aws-region: ${{ env.AWS_REGION_NAME }}
+
+      - name: Create new EBL app ver
+        run: |
+            aws elasticbeanstalk create-application-version \
+            --application-name ${{ env.EB_APPLICATION_NAME }} \
+            --source-bundle S3Bucket="${{ env.EB_S3_BUCKET_NAME }}",S3Key="${{ env.DEPLOY_PACKAGE_NAME }}" \
+            --version-label "${{ github.sha }}"
+      
+      - name: Deploy new app
+        run: aws elasticbeanstalk update-environment --environment-name ${{ env.EB_ENVIRONMENT_NAME }} --version-label "${{ github.sha }}"
+        
+      - name: Print nice message on success finish
+        run: echo "CD part finished successfuly"
